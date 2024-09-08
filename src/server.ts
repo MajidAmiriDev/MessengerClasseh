@@ -1,21 +1,29 @@
 import express from 'express';
 import http from 'http';
-import { Server } from 'socket.io';
+import { Server as SocketIOServer } from 'socket.io';
+import { setIO } from './io';
 import mongoose from 'mongoose';
-import authenticateSocket from './middleware/authMiddleware';
+import { verifySocketToken } from './middleware/authMiddleware';
 import Message from '../models/Message';
 import authRoutes from './routes/auth';
+import channelRoutes from './routes/channel';
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new SocketIOServer(server);
+
+setIO(io);
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
+app.use('/api/channel', channelRoutes);
 app.use(express.static('public'));
 mongoose.connect('mongodb://localhost:27017/chat-system')
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('MongoDB connection error:', err));
+
+
+
 
 io.on('connection', (socket) => {
     console.log('A user connected');

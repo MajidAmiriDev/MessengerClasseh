@@ -57,11 +57,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     createChannelButton.addEventListener('click', () => {
-
         const channelName = document.getElementById('channel-name').value;
-
         if (channelName) {
-            socket.emit('create channel', channelName);
+            fetch('/api/channel/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({ name: channelName })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        socket.emit('create channel', channelName);
+                    }
+                });
         }
     });
 
@@ -69,8 +79,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const message = messageInput.value;
         const channel = document.getElementById('channel-list').querySelector('li.selected')?.textContent;
         if (message && channel) {
-            socket.emit('chat message', { channel, message });
-            messageInput.value = '';
+            fetch('/api/channel/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({ channelName: channel, message })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        socket.emit('chat message', { channel, message });
+                        messageInput.value = '';
+                    }
+                });
         }
     });
 
