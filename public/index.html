@@ -1,0 +1,193 @@
+<html lang="en">
+<head>
+    <meta charSet="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat System</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chat-container {
+            width: 400px;
+            max-width: 100%;
+            background-color: #ffffff;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background-color: #f4f7f9;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.user-message {
+            align-items: flex-end;
+        }
+
+        .message-content {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 20px;
+            max-width: 75%;
+            word-wrap: break-word;
+        }
+
+        .message.user-message .message-content {
+            background-color: #e4e6eb;
+            color: #000;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            background-color: #f4f7f9;
+            border-top: 1px solid #ddd;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+
+        .chat-input button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        .chat-input button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentChannel = '';  // کانال فعلی که کاربر در آن قرار دارد
+
+        socket.on('chat message', (msg) => {
+            const messagesContainer = document.getElementById('messages');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', 'user-message');
+            messageElement.innerHTML = `
+                <div class="message-content">${msg}</div>
+                <div class="message-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+
+        // ساخت کانال
+        function createChannel() {
+            const channelName = prompt('Enter channel name:');
+            if (channelName.trim() !== '') {
+                socket.emit('create channel', channelName);
+                currentChannel = channelName;  // تنظیم کانال فعلی
+                document.getElementById('currentChannel').innerText = `Current Channel: ${channelName}`;
+            }
+        }
+
+        // پیوستن به کانال
+        function joinChannel() {
+            const channelName = prompt('Enter channel name to join:');
+            if (channelName.trim() !== '') {
+                socket.emit('join channel', channelName);
+                currentChannel = channelName;  // تنظیم کانال فعلی
+                document.getElementById('currentChannel').innerText = `Current Channel: ${channelName}`;
+            }
+        }
+
+        // تغییر کانال
+        socket.on('channel created', (channelName) => {
+            currentChannel = channelName;
+            document.getElementById('currentChannel').innerText = `Current Channel: ${channelName}`;
+            document.getElementById('messages').innerHTML = ''; // پاک کردن پیام‌های قبلی
+        });
+
+        socket.on('channel joined', (channelName) => {
+            currentChannel = channelName;
+            document.getElementById('currentChannel').innerText = `Current Channel: ${channelName}`;
+            document.getElementById('messages').innerHTML = ''; // پاک کردن پیام‌های قبلی
+        });
+
+        function sendMessage() {
+            const input = document.getElementById('input');
+            const message = input.value;
+            if (message.trim() !== '' && currentChannel !== '') {
+                socket.emit('chat message', { channel: currentChannel, message });  // ارسال پیام به کانال فعلی
+                input.value = '';  // پاک کردن ورودی
+            } else {
+                alert('Please join a channel first!');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('input');
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <span id="currentChannel">Current Channel: None</span>
+            <button onclick="createChannel()">Create Channel</button>
+            <button onclick="joinChannel()">Join Channel</button>
+        </div>
+        <div class="chat-messages" id="messages">
+        </div>
+        <div class="chat-input">
+            <input id="input" placeholder="Type a message..." autocomplete="off">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</body>
+</html>
